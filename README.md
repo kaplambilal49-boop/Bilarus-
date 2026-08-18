@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Bilarus V1.0</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #87CEEB; font-family: 'Arial', sans-serif; }
+        canvas { display: block; }
+        #ui { position: absolute; top: 20px; left: 20px; color: white; font-size: 24px; pointer-events: none; text-shadow: 2px 2px 4px #000; }
+        #tutorial { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.7); color: white; padding: 20px; border-radius: 10px; text-align: center; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div id="ui">Skor: 0</div>
+    <div id="tutorial">
+        <h1>BILARUS V1.0</h1>
+        <p>Eğitim: Sapanı geri çekmek için tıkla ve sürükle, bırakınca ateş et!</p>
+        <p>Kuşları vur, 100 puana ulaş!</p>
+        <p>(Başlamak için tıkla)</p>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const ui = document.getElementById('ui');
+    const tutorial = document.getElementById('tutorial');
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    let score = 0;
+    let gameState = 'TUTORIAL'; // TUTORIAL, PLAYING
+    let stones = [];
+    let birds = [];
+
+    // Sapan Ayarları
+    const slingX = 150;
+    const slingY = canvas.height - 100;
+    let isDragging = false;
+    let dragX = 0;
+    let dragY = 0;
+
+    // Kuş Sınıfı
+    class Bird {
+        constructor() {
+            this.x = canvas.width;
+            this.y = Math.random() * (canvas.height / 2);
+            this.speed = 3 + (score / 10); // Zorluk arttıkça hızlanır
+            this.size = 20;
+        }
+        update() { this.x -= this.speed; }
+        draw() {
+            ctx.fillStyle = 'black';
+            ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill();
+        }
+    }
+
+    // Oyun Döngüsü
+    function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Arka Plan (Basit Çizim)
+        ctx.fillStyle = '#228B22'; // Çimen
+        ctx.fillRect(0, canvas.height - 50, canvas.width, 50);
+
+        if (gameState === 'PLAYING') {
+            if (Math.random() < 0.02) birds.push(new Bird());
+
+            birds.forEach((bird, index) => {
+                bird.update();
+                bird.draw();
+                if (bird.x < 0) birds.splice(index, 1);
+            });
+
+            stones.forEach((stone, sIndex) => {
+                stone.x += stone.vx;
+                stone.y += stone.vy;
+                stone.vy += 0.2; // Yerçekimi
+                ctx.fillStyle = 'grey';
+                ctx.beginPath(); ctx.arc(stone.x, stone.y, 5, 0, Math.PI * 2); ctx.fill();
+
+                // Çarpışma Kontrolü
+                birds.forEach((bird, bIndex) => {
+                    let dx = stone.x - bird.x;
+                    let dy = stone.y - bird.y;
+                    if (Math.sqrt(dx*dx + dy*dy) < 25) {
+                        score++;
+                        ui.innerText = "Skor: " + score;
+                        birds.splice(bIndex, 1);
+                        stones.splice(sIndex, 1);
+                    }
+                });
+            });
+        }
+
+        // Sapan Çizimi
+        ctx.strokeStyle = 'brown'; ctx.lineWidth = 5;
+        ctx.beginPath(); ctx.moveTo(slingX, slingY); ctx.lineTo(slingX, slingY - 50); ctx.stroke();
+
+        requestAnimationFrame(animate);
+    }
+
+    // Etkileşimler
+    tutorial.onclick = () => { gameState = 'PLAYING'; tutorial.style.display = 'none'; };
+    
+    canvas.onmousedown = (e) => { if (gameState === 'PLAYING') isDragging = true; };
+    canvas.onmousemove = (e) => { if (isDragging) { dragX = e.clientX; dragY = e.clientY; } };
+    canvas.onmouseup = (e) => {
+        if (isDragging) {
+            isDragging = false;
+            stones.push({ x: slingX, y: slingY - 50, vx: (slingX - e.clientX) * 0.1, vy: (slingY - 50 - e.clientY) * 0.1 });
+        }
+    };
+
+    animate();
+</script>
+</body>
+</html>
