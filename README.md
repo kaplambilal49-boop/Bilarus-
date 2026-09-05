@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE ahtml>
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
